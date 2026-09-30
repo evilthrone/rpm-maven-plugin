@@ -17,6 +17,7 @@ final class RpmSpec {
                 + "Release: " + rpmPackage.release() + "\n"
                 + "Summary: " + summary + "\n"
                 + "License: " + license + "\n"
+                + "Group: Development/Other\n"
                 + "BuildArch: noarch\n"
                 + "Requires: " + rpmPackage.jreRequirement() + "\n"
                 + "Source0: " + rpmPackage.name() + ".jar\n"
