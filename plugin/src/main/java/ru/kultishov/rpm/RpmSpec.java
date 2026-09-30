@@ -8,16 +8,17 @@ final class RpmSpec {
     private RpmSpec() {
     }
 
-    static String generate(RpmPackage rpmPackage, String summary, String license, Instant buildTime)
+    static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime)
             throws MojoExecutionException {
         validateLine("Summary", summary);
         validateLine("License", license);
+        validateLine("Group", group);
         return "Name: " + rpmPackage.name() + "\n"
                 + "Version: " + rpmPackage.version() + "\n"
                 + "Release: " + rpmPackage.release() + "\n"
                 + "Summary: " + summary + "\n"
                 + "License: " + license + "\n"
-                + "Group: Development/Other\n"
+                + "Group: " + group + "\n"
                 + "BuildArch: noarch\n"
                 + "Requires: " + rpmPackage.jreRequirement() + "\n"
                 + "Source0: " + rpmPackage.name() + ".jar\n"
@@ -29,6 +30,7 @@ final class RpmSpec {
                 + "install -Dpm 0644 \"%{SOURCE0}\" \"%{buildroot}" + rpmPackage.jarPath() + "\"\n"
                 + "\n"
                 + "%files\n"
+                + "%dir %attr(0755,root,root) " + rpmPackage.installDirectory() + "\n"
                 + "%attr(0644,root,root) " + rpmPackage.jarPath() + "\n"
                 + "\n"
                 + "%changelog\n"

@@ -18,7 +18,8 @@ import java.util.regex.Pattern;
 record RpmPackage(String name, String version, String release, String jarPath, String jreRequirement) {
     private static final Pattern MAVEN_VERSION = Pattern.compile("([0-9]+(?:\\.[0-9]+)+)(?:-(RC[0-9]+|SNAPSHOT))?");
     private static final Pattern PACKAGE_NAME = Pattern.compile("[a-z0-9][a-z0-9+._-]*");
-    private static final Pattern REQUIREMENT = Pattern.compile("[a-zA-Z0-9][a-zA-Z0-9+._-]*");
+    private static final Pattern REQUIREMENT = Pattern.compile(
+            "[a-zA-Z0-9][a-zA-Z0-9+._-]*(?: (?:>=|<=|=|>|<) [0-9][a-zA-Z0-9.:~+_-]*)?");
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMddHHmmss", Locale.ROOT)
             .withZone(ZoneOffset.UTC);
     private static final DateTimeFormatter CHANGELOG_DATE = DateTimeFormatter.ofPattern("EEE MMM dd yyyy", Locale.ENGLISH)
@@ -32,9 +33,7 @@ record RpmPackage(String name, String version, String release, String jarPath, S
         if (releaseNumber < 1) {
             throw new MojoExecutionException("RPM release number must be positive");
         }
-        if (jreRequirement == null || !REQUIREMENT.matcher(jreRequirement).matches()) {
-            throw new MojoExecutionException("JRE requirement must be a package name without spaces or operators");
-        }
+        jreRequirement = normalizeRequirement(jreRequirement);
         Matcher matcher = MAVEN_VERSION.matcher(mavenVersion);
         if (!matcher.matches()) {
             throw new MojoExecutionException("Unsupported Maven version: " + mavenVersion);
@@ -54,6 +53,21 @@ record RpmPackage(String name, String version, String release, String jarPath, S
 
     static String changelogDate(Instant buildTime) {
         return CHANGELOG_DATE.format(buildTime);
+    }
+
+    static String normalizeRequirement(String requirement) throws MojoExecutionException {
+        if (requirement == null || requirement.indexOf('\n') >= 0 || requirement.indexOf('\r') >= 0) {
+            throw new MojoExecutionException("JRE requirement must be a single package name with an optional version constraint");
+        }
+        String normalized = requirement.trim().replaceAll("[ \\t]+", " ");
+        if (!REQUIREMENT.matcher(normalized).matches()) {
+            throw new MojoExecutionException("Invalid JRE requirement: use a package name, optionally followed by an operator and version");
+        }
+        return normalized;
+    }
+
+    String installDirectory() {
+        return "/usr/share/" + name;
     }
 
     Path rpmFile(Path workDirectory) {

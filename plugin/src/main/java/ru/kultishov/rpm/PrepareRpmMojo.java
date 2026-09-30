@@ -33,8 +33,11 @@ public final class PrepareRpmMojo extends AbstractMojo {
     @Parameter(property = "rpm.release", defaultValue = "1")
     private int releaseNumber;
 
-    @Parameter(property = "rpm.jreRequirement", defaultValue = "jre-openjdk-headless")
+    @Parameter(property = "rpm.jreRequirement", defaultValue = "java-21-openjdk-headless")
     private String jreRequirement;
+
+    @Parameter(property = "rpm.group", defaultValue = "Development/Other")
+    private String group;
 
     @Parameter(property = "rpm.summary", defaultValue = "Java application packaged by Maven")
     private String summary;
@@ -72,7 +75,7 @@ public final class PrepareRpmMojo extends AbstractMojo {
             }
             Files.copy(jar, workspace.source(rpmPackage), StandardCopyOption.REPLACE_EXISTING);
             Files.writeString(workspace.spec(rpmPackage),
-                    RpmSpec.generate(rpmPackage, summary, license, buildTime), StandardCharsets.UTF_8);
+                    RpmSpec.generate(rpmPackage, summary, license, group, buildTime), StandardCharsets.UTF_8);
             rpmPackage.save(workspace.metadata());
             getLog().info("Prepared RPM spec: " + workspace.spec(rpmPackage));
         } catch (IOException e) {

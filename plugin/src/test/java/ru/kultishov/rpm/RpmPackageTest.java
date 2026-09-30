@@ -56,11 +56,31 @@ class RpmPackageTest {
     }
 
     @Test
+    void preservesVersionedJreRequirementAcrossGoals() throws Exception {
+        RpmPackage original = RpmPackage.create("demo", "1.0.0", 1,
+                " java-21-openjdk-headless  >=\t21.0.1 ", BUILD_TIME);
+        Path metadata = temporaryDirectory.resolve("package.properties");
+
+        assertEquals("java-21-openjdk-headless >= 21.0.1", original.jreRequirement());
+        original.save(metadata);
+        assertEquals(original, RpmPackage.load(metadata));
+    }
+
+    @Test
+    void rejectsInjectedOrMalformedJreRequirements() {
+        for (String requirement : new String[]{"java >=", "java >= 21\nRequires: injected",
+                "java %{version}", "java; touch /tmp/injected", "java >= 21, other-package"}) {
+            assertThrows(MojoExecutionException.class,
+                    () -> RpmPackage.create("demo", "1.0.0", 1, requirement, BUILD_TIME));
+        }
+    }
+
+    @Test
     void specContainsPackageAndVerificationFields() throws Exception {
         RpmPackage rpmPackage = RpmPackage.create("demo", "1.0.0", 1,
                 "jre-openjdk-headless", BUILD_TIME);
 
-        String spec = RpmSpec.generate(rpmPackage, "Demo service", "Proprietary", BUILD_TIME);
+        String spec = RpmSpec.generate(rpmPackage, "Demo service", "Proprietary", "Development/Other", BUILD_TIME);
 
         assertTrue(spec.contains("Version: 1.0.0\nRelease: alt1\n"));
         assertTrue(spec.contains("Requires: jre-openjdk-headless\n"));
