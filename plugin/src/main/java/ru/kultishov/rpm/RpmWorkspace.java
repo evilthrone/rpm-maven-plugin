@@ -27,6 +27,14 @@ final class RpmWorkspace {
         return root.resolve("package.properties");
     }
 
+    Path contentManifest() {
+        return root.resolve("content.properties");
+    }
+
+    Path sourcesDirectory() {
+        return root.resolve("SOURCES");
+    }
+
     Path spec(RpmPackage rpmPackage) {
         return root.resolve("SPECS").resolve(rpmPackage.name() + ".spec");
     }

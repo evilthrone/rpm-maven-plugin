@@ -40,6 +40,7 @@ public final class BuildRpmMojo extends AbstractMojo {
         RpmWorkspace workspace = new RpmWorkspace(buildDirectory.toPath().toAbsolutePath().normalize());
         try {
             RpmPackage rpmPackage = RpmPackage.load(workspace.metadata());
+            RpmContent.load(workspace.contentManifest()).validateSources(workspace.sourcesDirectory());
             Path spec = workspace.spec(rpmPackage);
             Path source = workspace.source(rpmPackage);
             if (!Files.isRegularFile(spec) || Files.isSymbolicLink(spec)

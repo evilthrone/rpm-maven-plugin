@@ -50,18 +50,15 @@ public final class VerifyRpmMojo extends AbstractMojo {
                     .noneMatch(rpmPackage.jreRequirement()::equals)) {
                 throw new MojoExecutionException("RPM lacks JRE requirement: " + rpmPackage.jreRequirement());
             }
-            String files = query(workspace, "files", "-qpl", rpmFile.toString());
-            if (files.lines().noneMatch(rpmPackage.jarPath()::equals)) {
-                throw new MojoExecutionException("RPM lacks expected JAR path: " + rpmPackage.jarPath());
-            }
-            if (files.lines().noneMatch(rpmPackage.installDirectory()::equals)) {
-                throw new MojoExecutionException("RPM lacks expected application directory: " + rpmPackage.installDirectory());
-            }
+            String files = query(workspace, "files", "-qp", "--queryformat",
+                    "[%{FILENAMES}|%{FILEMODES}|%{FILEUSERNAME}|%{FILEGROUPNAME}|%{FILEFLAGS}\\n]",
+                    rpmFile.toString());
+            RpmContent.load(workspace.contentManifest()).verify(files);
             String changelog = query(workspace, "changelog", "-qp", "--changelog", rpmFile.toString());
             if (changelog.isBlank()) {
                 throw new MojoExecutionException("RPM changelog is empty");
             }
-            getLog().info("Verified RPM metadata, JRE requirement, application directory, JAR path, and changelog: " + rpmFile);
+            getLog().info("Verified RPM metadata, JRE requirement, file attributes, configuration flags, and changelog: " + rpmFile);
         } catch (IOException e) {
             throw new MojoExecutionException("Failed to read RPM preparation files", e);
         }

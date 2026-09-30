@@ -19,6 +19,26 @@
                 <groupId>ru.kultishov</groupId>
                 <artifactId>rpm-maven-plugin</artifactId>
                 <version>${project.version}</version>
+                <configuration>
+                    <mappings>
+                        <mapping>
+                            <destination>/etc/demo</destination>
+                            <mode>0755</mode>
+                        </mapping>
+                        <mapping>
+                            <source>${project.basedir}/src/main/rpm/demo.properties</source>
+                            <destination>/etc/demo/demo.properties</destination>
+                            <mode>0644</mode>
+                            <owner>root</owner>
+                            <group>root</group>
+                            <config>true</config>
+                        </mapping>
+                        <mapping>
+                            <destination>/var/log/demo</destination>
+                            <mode>0755</mode>
+                        </mapping>
+                    </mappings>
+                </configuration>
                 <executions>
                     <execution>
                         <id>rpm-package</id>

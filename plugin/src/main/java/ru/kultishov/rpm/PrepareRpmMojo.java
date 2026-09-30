@@ -10,13 +10,19 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.util.List;
 
 @Mojo(name = "prepare")
 public final class PrepareRpmMojo extends AbstractMojo {
     @Parameter(defaultValue = "${project.build.directory}", readonly = true, required = true)
     private File buildDirectory;
+
+    @Parameter(defaultValue = "${project.basedir}", readonly = true, required = true)
+    private File baseDirectory;
+
+    @Parameter
+    private List<RpmMapping> mappings;
 
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true, required = true)
     private String finalName;
@@ -70,12 +76,17 @@ public final class PrepareRpmMojo extends AbstractMojo {
         try {
             workspace.create();
             Files.deleteIfExists(workspace.metadata());
+            Files.deleteIfExists(workspace.contentManifest());
             if (Files.isSymbolicLink(workspace.source(rpmPackage)) || Files.isSymbolicLink(workspace.spec(rpmPackage))) {
                 throw new MojoExecutionException("RPM source or spec path must not be a symbolic link");
             }
-            Files.copy(jar, workspace.source(rpmPackage), StandardCopyOption.REPLACE_EXISTING);
+            RpmContent content = RpmContent.prepare(rpmPackage, jar, baseDirectory.toPath(),
+                    mappings == null ? List.of() : mappings);
+            String spec = RpmSpec.generate(rpmPackage, summary, license, group, buildTime, content);
+            content.stage(workspace.sourcesDirectory());
             Files.writeString(workspace.spec(rpmPackage),
-                    RpmSpec.generate(rpmPackage, summary, license, group, buildTime), StandardCharsets.UTF_8);
+                    spec, StandardCharsets.UTF_8);
+            content.save(workspace.contentManifest());
             rpmPackage.save(workspace.metadata());
             getLog().info("Prepared RPM spec: " + workspace.spec(rpmPackage));
         } catch (IOException e) {
