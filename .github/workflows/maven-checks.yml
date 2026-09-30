@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Tests and JAR build (Java 21)
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -27,5 +27,43 @@ jobs:
           cache: maven
           cache-dependency-path: '**/pom.xml'
 
-      - name: Run tests and build JARs
-        run: mvn --batch-mode --no-transfer-progress clean package -Drpm.skip=true
+      - name: Build JARs without running tests
+        run: mvn --batch-mode --no-transfer-progress clean package -DskipTests -Drpm.skip=true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Run tests
+        run: mvn --batch-mode --no-transfer-progress clean test
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: '**/pom.xml'
+
+      - name: Check Java source and test code
+        run: mvn --batch-mode --no-transfer-progress checkstyle:check
