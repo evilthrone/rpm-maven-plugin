@@ -13,8 +13,8 @@ permissions:
 jobs:
   build:
     name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Check out source
         uses: actions/checkout@v7
@@ -27,12 +27,35 @@ jobs:
           cache: maven
           cache-dependency-path: '**/pom.xml'
 
-      - name: Build JARs without running tests
-        run: mvn --batch-mode --no-transfer-progress clean package -DskipTests -Drpm.skip=true
+      - name: Check Docker engine
+        run: docker version
+
+      - name: Build JARs on Ubuntu and RPM in ALT p11
+        run: mvn --batch-mode --no-transfer-progress clean package -DskipTests -Drpm.buildMode=container
+
+      - name: Upload verified RPM
+        uses: actions/upload-artifact@v7
+        with:
+          name: demo-rpm
+          path: demo/target/rpm-work/RPMS/noarch/*.rpm
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload RPM build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: rpm-build-logs
+          path: |
+            demo/target/rpm-work/*.log
+            demo/target/rpm-work/SPECS/*.spec
+            demo/target/rpm-work/environment.txt
+          if-no-files-found: ignore
+          retention-days: 14
 
   test:
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out source
@@ -49,9 +72,18 @@ jobs:
       - name: Run tests
         run: mvn --batch-mode --no-transfer-progress clean test
 
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: junit-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: ignore
+          retention-days: 14
+
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Check out source
