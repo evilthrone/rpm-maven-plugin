@@ -25,6 +25,9 @@ public final class PrepareRpmMojo extends AbstractMojo {
     @Parameter
     private List<RpmMapping> mappings;
 
+    @Parameter
+    private RpmService service;
+
     @Parameter(defaultValue = "${project.build.finalName}", readonly = true, required = true)
     private String finalName;
 
@@ -94,11 +97,23 @@ public final class PrepareRpmMojo extends AbstractMojo {
             launcherMapping.setMode("0755");
             List<RpmMapping> packageMappings = new ArrayList<>();
             packageMappings.add(launcherMapping);
+            RpmSystemd.Service preparedService = service == null ? null
+                    : RpmSystemd.prepare(service, rpmPackage, baseDirectory.toPath());
+            if (preparedService != null) {
+                Path unit = workspace.root().resolve("service.unit");
+                RpmContent.rejectSymlink(unit);
+                Files.writeString(unit, preparedService.unit(), StandardCharsets.UTF_8);
+                RpmMapping unitMapping = new RpmMapping();
+                unitMapping.setSource(unit.toFile());
+                unitMapping.setDestination(preparedService.destination());
+                unitMapping.setMode("0644");
+                packageMappings.add(unitMapping);
+            }
             if (mappings != null) {
                 packageMappings.addAll(mappings);
             }
             RpmContent content = RpmContent.prepare(rpmPackage, jar, baseDirectory.toPath(), packageMappings);
-            String spec = RpmSpec.generate(rpmPackage, summary, license, group, buildTime, content);
+            String spec = RpmSpec.generate(rpmPackage, summary, license, group, buildTime, content, preparedService);
             content.stage(workspace.sourcesDirectory());
             Files.writeString(workspace.spec(rpmPackage),
                     spec, StandardCharsets.UTF_8);
