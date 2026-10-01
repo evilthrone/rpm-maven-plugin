@@ -36,6 +36,10 @@ in arguments are escaped. Environment values are literal single lines.
 The unit is installed at `/lib/systemd/system/<name>.service` with `0644`,
 owned by `root:root`. It runs `/usr/bin/<rpm-name>` as the configured user/group,
 uses `Type=simple`, and declares `WantedBy=multi-user.target`.
+Generated units include `SuccessExitStatus=143`: the tested JVM reports this
+exit code after SIGTERM during a normal service stop. Without this setting,
+systemd marks that stop as failed. Other nonzero exit codes remain failures.
+For a supplied unit, add this directive in `[Service]` yourself if needed.
 
 ## Ready-made unit
 
@@ -111,6 +115,7 @@ systemctl status demo --no-pager
 systemctl show demo -p User -p Group -p MainPID -p Environment
 curl -i http://localhost:8081/health
 systemctl stop demo
+systemctl show demo -p ActiveState -p Result -p ExecMainStatus
 curl --max-time 3 -i http://localhost:8081/health
 systemctl start demo
 systemctl restart demo
@@ -122,6 +127,8 @@ exit
 Ensure port 8081 is free before starting. Expect `demo:demo`, mode `0750` on
 the log directory, an active service, and HTTP 200/OK after start/restart.
 The request after stop must fail to connect. Record MainPID before upgrading.
+After a normal stop, expect `ActiveState=inactive`, `Result=success`; exit
+status 143 is accepted as successful termination of the Java process.
 For diagnostics, use `journalctl -u demo -n 50 --no-pager` as root.
 
 Build alt2 as the ordinary user while the service is running:

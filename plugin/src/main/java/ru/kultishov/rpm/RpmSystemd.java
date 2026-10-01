@@ -72,7 +72,7 @@ final class RpmSystemd {
         for (String argument : configuration.getArguments()) {
             unit.append(" \"").append(escaped(argument).replace("$", "$$")).append('"');
         }
-        unit.append("\nRestart=").append(configuration.getRestart()).append("\nRestartSec=3\n");
+        unit.append("\nSuccessExitStatus=143\nRestart=").append(configuration.getRestart()).append("\nRestartSec=3\n");
         for (var entry : configuration.getEnvironment().entrySet().stream().sorted(java.util.Map.Entry.comparingByKey()).toList()) {
             if (!entry.getKey().matches("[a-zA-Z_][a-zA-Z0-9_]*")) {
                 throw new MojoExecutionException("Invalid service environment variable: " + entry.getKey());

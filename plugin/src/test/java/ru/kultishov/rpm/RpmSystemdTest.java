@@ -32,6 +32,15 @@ class RpmSystemdTest {
     }
 
     @Test
+    void treatsJavaSigtermExitAsSuccessfulWithoutIgnoringOtherFailures() throws Exception {
+        var service = RpmSystemd.prepare(new RpmService(), rpm(), temporaryDirectory);
+        assertTrue(service.unit().contains("\nSuccessExitStatus=143\n"));
+        assertEquals(1, service.unit().lines().filter(line -> line.startsWith("SuccessExitStatus=")).count());
+        assertTrue(service.unit().contains("\nRestart=on-failure\n"));
+        assertFalse(service.unit().contains("\nExecStart=-"));
+    }
+
+    @Test
     void escapesSystemdSpecifiersAndPreservesArgumentBoundaries() throws Exception {
         RpmService configuration = new RpmService();
         configuration.setName("demo-http");
