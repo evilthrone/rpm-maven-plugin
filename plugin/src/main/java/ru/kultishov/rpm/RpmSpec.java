@@ -15,6 +15,11 @@ final class RpmSpec {
 
     static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime,
                            RpmContent content) throws MojoExecutionException {
+        return generate(rpmPackage, summary, license, group, buildTime, content, null);
+    }
+
+    static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime,
+                           RpmContent content, RpmSystemd.Service service) throws MojoExecutionException {
         validateLine("Summary", summary);
         validateLine("License", license);
         validateLine("Group", group);
@@ -26,6 +31,9 @@ final class RpmSpec {
                 + "Group: " + group + "\n"
                 + "BuildArch: noarch\n"
                 + "Requires: " + rpmPackage.jreRequirement() + "\n");
+        if (service != null) {
+            spec.append(service.requirements());
+        }
         for (RpmContent.Entry entry : content.entries()) {
             if (!entry.directory()) {
                 spec.append("Source").append(entry.sourceIndex()).append(": ")
@@ -46,6 +54,9 @@ final class RpmSpec {
                         .append(entry.sourceIndex()).append("}\" \"%{buildroot}")
                         .append(entry.destination()).append("\"\n");
             }
+        }
+        if (service != null) {
+            spec.append(service.scriptlets());
         }
         spec.append("\n%files\n");
         for (RpmContent.Entry entry : content.entries()) {

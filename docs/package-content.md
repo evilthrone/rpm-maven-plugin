@@ -45,8 +45,8 @@ other content in the RPM plugin's `<configuration>`:
   (default `0644`). Use four octal digits; special permission bits are supported
   (for example `2750` for a directory with setgid).
 - `owner` and `group` default to `root`. They are Linux account names, not the
-  package category `rpm.group`. This stage does not create accounts; configured
-  owners and groups must exist on the target system.
+  package category `rpm.group`. The optional [service configuration](systemd-service.md)
+  creates its service user and group in `%pre`. Other accounts must already exist.
 - `config=true` emits `%config(noreplace)` for a file, or for every file in a
   directory tree. It is invalid for a directory without a source.
 - Destinations must be absolute Linux paths. Supported path components contain
@@ -83,8 +83,9 @@ rpm -qplv /tmp/demo-package-content-alt1.rpm
 rpm -qp --queryformat '[%{FILENAMES}|%{FILEMODES}|%{FILEUSERNAME}|%{FILEGROUPNAME}|%{FILEFLAGS}\n]' /tmp/demo-package-content-alt1.rpm
 ```
 
-Expect `/etc/demo`, `/var/log/demo`, and `/usr/share/demo` to be directories
-with mode `0755`, owned by `root:root`. Expect the JAR and configuration file
+Expect `/etc/demo` and `/usr/share/demo` to be directories with mode `0755`,
+owned by `root:root`. The current demo uses `0750` and `demo:demo` for
+`/var/log/demo` so its service can write there. Expect the JAR and configuration file
 to have mode `0644`. `/etc/demo/demo.properties` must have both CONFIG and
 NOREPLACE flags (numeric value includes bits `1` and `16`).
 

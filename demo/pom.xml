@@ -20,6 +20,17 @@
                 <artifactId>rpm-maven-plugin</artifactId>
                 <version>${project.version}</version>
                 <configuration>
+                    <service>
+                        <description>Demo Java HTTP service</description>
+                        <user>demo</user>
+                        <group>demo</group>
+                        <arguments>
+                            <argument>8081</argument>
+                        </arguments>
+                        <environment>
+                            <JAVA_OPTS>-Xmx128m</JAVA_OPTS>
+                        </environment>
+                    </service>
                     <mappings>
                         <mapping>
                             <destination>/etc/demo</destination>
@@ -35,7 +46,9 @@
                         </mapping>
                         <mapping>
                             <destination>/var/log/demo</destination>
-                            <mode>0755</mode>
+                            <mode>0750</mode>
+                            <owner>demo</owner>
+                            <group>demo</group>
                         </mapping>
                     </mappings>
                 </configuration>

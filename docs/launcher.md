@@ -46,8 +46,8 @@ Application arguments use ordinary shell quoting:
 demo 8081
 ```
 
-This stage does not add systemd integration or change how DemoServer reads
-configuration. `/etc/demo/demo.properties` remains a packaging example.
+For background service management, see [systemd service](systemd-service.md).
+`/etc/demo/demo.properties` remains a packaging example; DemoServer does not read it.
 Mappings cannot overwrite `/usr/bin/<rpm-name>`; conflicting destinations
 fail during preparation.
 
