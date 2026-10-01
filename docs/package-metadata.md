@@ -18,7 +18,8 @@ The default dependency supplies Java 21 for the demo, which targets Java 21.
 It does not select the executable behind `/usr/bin/java`. When several JDKs
 are installed, use the executable from the required package explicitly.
 Applications targeting a newer Java release must configure a suitable JRE
-requirement. A generated launcher will be added in a later stage.
+requirement. The generated launcher supports Java selection through
+`JAVA_HOME` or `rpm.javaExecutable`; see [launcher.md](launcher.md).
 
 The package owns `/usr/share/<rpm-name>` with mode `0755`, owner `root`, and
 group `root`. The JAR inside it has mode `0644`. Shared parent directories

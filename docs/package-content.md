@@ -1,6 +1,7 @@
 # Configurable package contents
 
-The project JAR and `/usr/share/<rpm-name>` are included automatically. Add
+The project JAR, `/usr/share/<rpm-name>`, and the generated `/usr/bin/<rpm-name>`
+launcher are included automatically. Add
 other content in the RPM plugin's `<configuration>`:
 
 ```xml
@@ -53,7 +54,7 @@ other content in the RPM plugin's `<configuration>`:
   containing spaces are quoted in the spec. Root, trailing or repeated
   slashes, `.` and `..` components, backslashes, RPM macros, and shell
   metacharacters are rejected.
-- Duplicate destinations, attempts to replace the default JAR or its directory,
+- Duplicate destinations, attempts to replace the default JAR, its directory, or launcher,
   and a file used as a parent of another destination are rejected. A directory
   and separately mapped children are allowed.
 - Parent directories are created as needed during installation into the build

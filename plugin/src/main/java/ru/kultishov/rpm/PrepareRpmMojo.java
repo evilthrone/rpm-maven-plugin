@@ -11,6 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Mojo(name = "prepare")
@@ -41,6 +42,9 @@ public final class PrepareRpmMojo extends AbstractMojo {
 
     @Parameter(property = "rpm.jreRequirement", defaultValue = "java-21-openjdk-headless")
     private String jreRequirement;
+
+    @Parameter(property = "rpm.javaExecutable", defaultValue = "java")
+    private String javaExecutable;
 
     @Parameter(property = "rpm.group", defaultValue = "Development/Other")
     private String group;
@@ -80,8 +84,20 @@ public final class PrepareRpmMojo extends AbstractMojo {
             if (Files.isSymbolicLink(workspace.source(rpmPackage)) || Files.isSymbolicLink(workspace.spec(rpmPackage))) {
                 throw new MojoExecutionException("RPM source or spec path must not be a symbolic link");
             }
-            RpmContent content = RpmContent.prepare(rpmPackage, jar, baseDirectory.toPath(),
-                    mappings == null ? List.of() : mappings);
+            Path launcher = workspace.root().resolve("launcher.sh");
+            RpmContent.rejectSymlink(launcher);
+            Files.writeString(launcher, RpmLauncher.generate(rpmPackage.jarPath(), javaExecutable),
+                    StandardCharsets.UTF_8);
+            RpmMapping launcherMapping = new RpmMapping();
+            launcherMapping.setSource(launcher.toFile());
+            launcherMapping.setDestination("/usr/bin/" + rpmPackage.name());
+            launcherMapping.setMode("0755");
+            List<RpmMapping> packageMappings = new ArrayList<>();
+            packageMappings.add(launcherMapping);
+            if (mappings != null) {
+                packageMappings.addAll(mappings);
+            }
+            RpmContent content = RpmContent.prepare(rpmPackage, jar, baseDirectory.toPath(), packageMappings);
             String spec = RpmSpec.generate(rpmPackage, summary, license, group, buildTime, content);
             content.stage(workspace.sourcesDirectory());
             Files.writeString(workspace.spec(rpmPackage),
