@@ -30,17 +30,17 @@ final class RpmCommand {
                     .start();
         } catch (IOException e) {
             throw new MojoExecutionException("Cannot start " + command.getFirst()
-                    + "; check that the RPM tool is installed and available on PATH", e);
+                    + "; check that the executable is installed and available on PATH"
+                    + "; for container builds, start the Docker engine", e);
         }
         try {
             if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
-                process.destroyForcibly();
-                process.waitFor();
+                terminate(process);
                 throw new MojoExecutionException("RPM command timed out after " + timeoutSeconds
                         + " seconds; log: " + logFile);
             }
         } catch (InterruptedException e) {
-            process.destroyForcibly();
+            terminate(process);
             Thread.currentThread().interrupt();
             throw new MojoExecutionException("RPM command was interrupted; log: " + logFile, e);
         }
@@ -56,5 +56,10 @@ final class RpmCommand {
                     + "; log: " + logFile + "\n" + tail);
         }
         return output;
+    }
+
+    private static void terminate(Process process) {
+        process.descendants().forEach(ProcessHandle::destroyForcibly);
+        process.destroyForcibly();
     }
 }

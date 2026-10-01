@@ -1,6 +1,5 @@
 package ru.kultishov.rpm;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -12,10 +11,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
 
 @Mojo(name = "build")
-public final class BuildRpmMojo extends AbstractMojo {
+public final class BuildRpmMojo extends AbstractRpmToolMojo {
     @Parameter(defaultValue = "${project.build.directory}", readonly = true, required = true)
     private File buildDirectory;
 
@@ -24,9 +22,6 @@ public final class BuildRpmMojo extends AbstractMojo {
 
     @Parameter(property = "rpm.rpmbuildExecutable", defaultValue = "rpmbuild")
     private String rpmbuildExecutable;
-
-    @Parameter(property = "rpm.commandTimeoutSeconds", defaultValue = "120")
-    private long timeoutSeconds;
 
     @Parameter(property = "rpm.skip", defaultValue = "false")
     private boolean skip;
@@ -52,9 +47,11 @@ public final class BuildRpmMojo extends AbstractMojo {
                 throw new MojoExecutionException("RPM output directory must not be a symbolic link");
             }
             Files.deleteIfExists(rpmFile);
-            Path log = workspace.root().resolve("rpmbuild.log");
-            String output = RpmCommand.run(List.of(rpmbuildExecutable, "-bb", "--define",
-                    "_topdir " + workspace.root(), spec.toString()), workspace.root(), log, timeoutSeconds);
+            Files.deleteIfExists(workspace.root().resolve("environment.txt"));
+            String output;
+            try (RpmEnvironment environment = RpmEnvironment.forBuild(this, workspace)) {
+                output = environment.build(rpmPackage, rpmbuildExecutable);
+            }
             if (!Files.isRegularFile(rpmFile) || Files.isSymbolicLink(rpmFile)) {
                 throw new MojoExecutionException("rpmbuild succeeded but expected RPM is missing: " + rpmFile
                         + "\n" + output);
@@ -67,7 +64,7 @@ public final class BuildRpmMojo extends AbstractMojo {
             project.addAttachedArtifact(artifact);
             getLog().info("Built and attached RPM: " + rpmFile);
         } catch (IOException e) {
-            throw new MojoExecutionException("Failed to read RPM preparation files", e);
+            throw new MojoExecutionException("Failed to prepare or read RPM build files", e);
         }
     }
 }

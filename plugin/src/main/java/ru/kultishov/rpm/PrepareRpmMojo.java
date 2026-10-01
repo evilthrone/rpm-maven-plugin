@@ -84,6 +84,7 @@ public final class PrepareRpmMojo extends AbstractMojo {
             workspace.create();
             Files.deleteIfExists(workspace.metadata());
             Files.deleteIfExists(workspace.contentManifest());
+            Files.deleteIfExists(workspace.root().resolve("environment.txt"));
             if (Files.isSymbolicLink(workspace.source(rpmPackage)) || Files.isSymbolicLink(workspace.spec(rpmPackage))) {
                 throw new MojoExecutionException("RPM source or spec path must not be a symbolic link");
             }
