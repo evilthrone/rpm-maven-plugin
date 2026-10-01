@@ -65,6 +65,7 @@ final class RpmEnvironment implements AutoCloseable {
                 + "USER rpm-builder\n"
                 + "WORKDIR /work\n");
         RpmEnvironment environment = new RpmEnvironment(settings, workspace, "pending");
+        checkDockerAvailable(List.of(settings.dockerExecutable), workspace.root(), settings.timeoutSeconds);
         settings.getLog().info("Preparing ALT p11 container tools; log: " + workspace.root().resolve("container-setup.log"));
         Files.deleteIfExists(context.resolve("image.id"));
         environment.docker("setup", settings.containerTimeoutSeconds, "build", "--platform", "linux/amd64",
@@ -127,6 +128,7 @@ final class RpmEnvironment implements AutoCloseable {
                     settings.timeoutSeconds);
         }
         if (container == null) {
+            checkDockerAvailable(List.of(settings.dockerExecutable), workspace.root(), settings.timeoutSeconds);
             create(List.of("sleep", "infinity"));
             docker("copy-query-rpm", settings.timeoutSeconds, "cp", workspace.root().relativize(rpmFile).toString(),
                     container + ":/work/package.rpm");
@@ -150,6 +152,28 @@ final class RpmEnvironment implements AutoCloseable {
         List<String> command = new ArrayList<>(List.of(settings.dockerExecutable));
         command.addAll(List.of(arguments));
         return RpmCommand.run(command, workspace.root(), workspace.root().resolve("container-" + label + ".log"), timeout);
+    }
+
+    static void checkDockerAvailable(List<String> executable, Path directory, long timeout)
+            throws MojoExecutionException {
+        if (timeout < 1) {
+            throw new MojoExecutionException("rpm.commandTimeoutSeconds must be positive");
+        }
+        Path diagnostic = directory.resolve("container-engine.log");
+        if (Files.isSymbolicLink(diagnostic)) {
+            throw new MojoExecutionException("RPM log path must not be a symbolic link: " + diagnostic);
+        }
+        List<String> command = new ArrayList<>(executable);
+        command.addAll(List.of("info", "--format", "{{.ServerVersion}}"));
+        try {
+            RpmCommand.run(command, directory, diagnostic, timeout);
+        } catch (MojoExecutionException e) {
+            if (Thread.currentThread().isInterrupted()) {
+                throw e;
+            }
+            throw new MojoExecutionException("Docker engine is not available now. Please run Docker Desktop."
+                    + "\nDiagnostic log: " + diagnostic, e);
+        }
     }
 
     private static String tail(String output) {
