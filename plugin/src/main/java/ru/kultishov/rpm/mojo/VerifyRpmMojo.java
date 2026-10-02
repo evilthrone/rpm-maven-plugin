@@ -1,4 +1,9 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.mojo;
+
+import ru.kultishov.rpm.packaging.RpmContent;
+import ru.kultishov.rpm.build.RpmEnvironment;
+import ru.kultishov.rpm.packaging.RpmPackage;
+import ru.kultishov.rpm.packaging.RpmWorkspace;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -33,7 +38,7 @@ public final class VerifyRpmMojo extends AbstractRpmToolMojo {
             if (!Files.isRegularFile(rpmFile) || Files.isSymbolicLink(rpmFile)) {
                 throw new MojoExecutionException("RPM is missing; run rpm:build first: " + rpmFile);
             }
-            try (RpmEnvironment environment = RpmEnvironment.forVerify(this, workspace)) {
+            try (RpmEnvironment environment = RpmEnvironment.forVerify(buildSettings(), workspace, getLog())) {
                 String metadata = environment.query(rpmExecutable, rpmFile, "metadata", "-qp", "--queryformat",
                         "%{NAME}|%{VERSION}|%{RELEASE}|%{ARCH}").trim();
                 String expected = String.join("|", rpmPackage.name(), rpmPackage.version(), rpmPackage.release(), "noarch");

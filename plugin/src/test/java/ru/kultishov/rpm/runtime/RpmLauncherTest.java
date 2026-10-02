@@ -1,4 +1,9 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.runtime;
+
+import ru.kultishov.rpm.packaging.RpmContent;
+import ru.kultishov.rpm.config.RpmMapping;
+import ru.kultishov.rpm.packaging.RpmPackage;
+import ru.kultishov.rpm.packaging.RpmSpec;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;

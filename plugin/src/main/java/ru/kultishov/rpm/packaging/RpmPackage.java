@@ -1,4 +1,4 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.packaging;
 
 import org.apache.maven.plugin.MojoExecutionException;
 
@@ -15,7 +15,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-record RpmPackage(String name, String version, String release, String jarPath, String jreRequirement) {
+public record RpmPackage(String name, String version, String release, String jarPath, String jreRequirement) {
     private static final Pattern MAVEN_VERSION = Pattern.compile("([0-9]+(?:\\.[0-9]+)+)(?:-(RC[0-9]+|SNAPSHOT))?");
     private static final Pattern PACKAGE_NAME = Pattern.compile("[a-z0-9][a-z0-9+._-]*");
     private static final Pattern REQUIREMENT = Pattern.compile(
@@ -25,7 +25,7 @@ record RpmPackage(String name, String version, String release, String jarPath, S
     private static final DateTimeFormatter CHANGELOG_DATE = DateTimeFormatter.ofPattern("EEE MMM dd yyyy", Locale.ENGLISH)
             .withZone(ZoneOffset.UTC);
 
-    static RpmPackage create(String name, String mavenVersion, int releaseNumber, String jreRequirement,
+    public static RpmPackage create(String name, String mavenVersion, int releaseNumber, String jreRequirement,
                              Instant buildTime) throws MojoExecutionException {
         if (name == null || !PACKAGE_NAME.matcher(name).matches()) {
             throw new MojoExecutionException("RPM name must contain only lowercase letters, digits, '.', '+', '_' or '-'");
@@ -55,7 +55,7 @@ record RpmPackage(String name, String version, String release, String jarPath, S
         return CHANGELOG_DATE.format(buildTime);
     }
 
-    static String normalizeRequirement(String requirement) throws MojoExecutionException {
+    public static String normalizeRequirement(String requirement) throws MojoExecutionException {
         if (requirement == null || requirement.indexOf('\n') >= 0 || requirement.indexOf('\r') >= 0) {
             throw new MojoExecutionException("JRE requirement must be a single package name with an optional version constraint");
         }
@@ -70,11 +70,11 @@ record RpmPackage(String name, String version, String release, String jarPath, S
         return "/usr/share/" + name;
     }
 
-    Path rpmFile(Path workDirectory) {
+    public Path rpmFile(Path workDirectory) {
         return workDirectory.resolve("RPMS/noarch/" + name + "-" + version + "-" + release + ".noarch.rpm");
     }
 
-    void save(Path file) throws IOException {
+    public void save(Path file) throws IOException {
         Properties properties = new Properties();
         properties.setProperty("name", name);
         properties.setProperty("version", version);
@@ -86,7 +86,7 @@ record RpmPackage(String name, String version, String release, String jarPath, S
         }
     }
 
-    static RpmPackage load(Path file) throws IOException, MojoExecutionException {
+    public static RpmPackage load(Path file) throws IOException, MojoExecutionException {
         if (!Files.isRegularFile(file) || Files.isSymbolicLink(file)) {
             throw new MojoExecutionException("RPM preparation metadata is missing: " + file);
         }

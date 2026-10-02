@@ -1,4 +1,8 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.build;
+
+import ru.kultishov.rpm.config.RpmBuildSettings;
+import ru.kultishov.rpm.packaging.RpmWorkspace;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
@@ -44,11 +48,9 @@ class RpmDockerTest {
     void buildReportsMissingDockerBeforePreparingImage() throws Exception {
         RpmWorkspace workspace = new RpmWorkspace(temporaryDirectory);
         workspace.create();
-        BuildRpmMojo settings = new BuildRpmMojo();
-        settings.buildMode = "container";
-        settings.dockerExecutable = temporaryDirectory.resolve("missing-docker").toString();
+        RpmBuildSettings settings = settings("container");
         MojoExecutionException failure = assertThrows(MojoExecutionException.class,
-                () -> RpmEnvironment.forBuild(settings, workspace));
+                () -> RpmEnvironment.forBuild(settings, workspace, new SystemStreamLog()));
         assertTrue(failure.getMessage().startsWith(MESSAGE));
         assertTrue(failure.getCause().getMessage().contains("Cannot start"));
         assertFalse(Files.exists(workspace.root().resolve("container-setup.log")));
@@ -59,9 +61,8 @@ class RpmDockerTest {
         RpmWorkspace workspace = new RpmWorkspace(temporaryDirectory);
         workspace.create();
         Files.writeString(workspace.root().resolve("environment.txt"), "sha256:" + "a".repeat(64));
-        VerifyRpmMojo settings = new VerifyRpmMojo();
-        settings.dockerExecutable = temporaryDirectory.resolve("missing-docker").toString();
-        try (RpmEnvironment environment = RpmEnvironment.forVerify(settings, workspace)) {
+        RpmBuildSettings settings = settings("container");
+        try (RpmEnvironment environment = RpmEnvironment.forVerify(settings, workspace, new SystemStreamLog())) {
             MojoExecutionException failure = assertThrows(MojoExecutionException.class,
                     () -> environment.query("rpm", workspace.root().resolve("package.rpm"), "metadata", "-qp"));
             assertTrue(failure.getMessage().startsWith(MESSAGE));
@@ -73,10 +74,8 @@ class RpmDockerTest {
     void localEnvironmentDoesNotRequireDocker() throws Exception {
         RpmWorkspace workspace = new RpmWorkspace(temporaryDirectory);
         workspace.create();
-        BuildRpmMojo settings = new BuildRpmMojo();
-        settings.buildMode = "local";
-        settings.dockerExecutable = temporaryDirectory.resolve("missing-docker").toString();
-        try (RpmEnvironment environment = RpmEnvironment.forBuild(settings, workspace)) {
+        RpmBuildSettings settings = settings("local");
+        try (RpmEnvironment environment = RpmEnvironment.forBuild(settings, workspace, new SystemStreamLog())) {
             assertNotNull(environment);
             assertFalse(Files.exists(workspace.root().resolve("container-engine.log")));
         }
@@ -101,6 +100,11 @@ class RpmDockerTest {
         MojoExecutionException failure = assertThrows(MojoExecutionException.class,
                 () -> RpmEnvironment.checkDockerAvailable(fakeDocker("available"), temporaryDirectory, 0));
         assertEquals("rpm.commandTimeoutSeconds must be positive", failure.getMessage());
+    }
+
+    private RpmBuildSettings settings(String mode) {
+        return new RpmBuildSettings(mode, temporaryDirectory.resolve("missing-docker").toString(),
+                "alt:p11", 900, 20, null, null, 120);
     }
 
     public static class DockerProbe {

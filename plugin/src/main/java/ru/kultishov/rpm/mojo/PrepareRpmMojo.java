@@ -1,4 +1,13 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.mojo;
+
+import ru.kultishov.rpm.packaging.RpmContent;
+import ru.kultishov.rpm.runtime.RpmLauncher;
+import ru.kultishov.rpm.config.RpmMapping;
+import ru.kultishov.rpm.packaging.RpmPackage;
+import ru.kultishov.rpm.config.RpmService;
+import ru.kultishov.rpm.packaging.RpmSpec;
+import ru.kultishov.rpm.runtime.RpmSystemd;
+import ru.kultishov.rpm.packaging.RpmWorkspace;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;

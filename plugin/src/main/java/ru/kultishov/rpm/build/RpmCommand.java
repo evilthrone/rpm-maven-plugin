@@ -1,4 +1,4 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.build;
 
 import org.apache.maven.plugin.MojoExecutionException;
 

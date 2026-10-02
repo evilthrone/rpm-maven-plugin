@@ -1,12 +1,14 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.runtime;
+
+import ru.kultishov.rpm.packaging.RpmPackage;
 
 import org.apache.maven.plugin.MojoExecutionException;
 
-final class RpmLauncher {
+public final class RpmLauncher {
     private RpmLauncher() {
     }
 
-    static String generate(String jarPath, String javaExecutable, String jreRequirement) throws MojoExecutionException {
+    public static String generate(String jarPath, String javaExecutable, String jreRequirement) throws MojoExecutionException {
         validate("JAR path", jarPath);
         validate("Java executable", javaExecutable);
         String jrePackage = RpmPackage.normalizeRequirement(jreRequirement).split(" ")[0];

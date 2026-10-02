@@ -1,4 +1,4 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.packaging;
 
 import org.apache.maven.plugin.MojoExecutionException;
 
@@ -6,10 +6,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-final class RpmWorkspace {
+public final class RpmWorkspace {
     private final Path root;
 
-    RpmWorkspace(Path buildDirectory) throws MojoExecutionException {
+    public RpmWorkspace(Path buildDirectory) throws MojoExecutionException {
         if (Files.isSymbolicLink(buildDirectory)) {
             throw new MojoExecutionException("Maven build directory must not be a symbolic link: " + buildDirectory);
         }
@@ -19,31 +19,31 @@ final class RpmWorkspace {
         }
     }
 
-    Path root() {
+    public Path root() {
         return root;
     }
 
-    Path metadata() {
+    public Path metadata() {
         return root.resolve("package.properties");
     }
 
-    Path contentManifest() {
+    public Path contentManifest() {
         return root.resolve("content.properties");
     }
 
-    Path sourcesDirectory() {
+    public Path sourcesDirectory() {
         return root.resolve("SOURCES");
     }
 
-    Path spec(RpmPackage rpmPackage) {
+    public Path spec(RpmPackage rpmPackage) {
         return root.resolve("SPECS").resolve(rpmPackage.name() + ".spec");
     }
 
-    Path source(RpmPackage rpmPackage) {
+    public Path source(RpmPackage rpmPackage) {
         return root.resolve("SOURCES").resolve(rpmPackage.name() + ".jar");
     }
 
-    void create() throws IOException, MojoExecutionException {
+    public void create() throws IOException, MojoExecutionException {
         for (String name : new String[]{"SPECS", "SOURCES", "BUILD", "BUILDROOT", "RPMS"}) {
             Path directory = root.resolve(name);
             if (Files.isSymbolicLink(directory)) {

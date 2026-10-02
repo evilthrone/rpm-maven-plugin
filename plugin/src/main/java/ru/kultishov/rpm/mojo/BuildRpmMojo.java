@@ -1,4 +1,9 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.mojo;
+
+import ru.kultishov.rpm.packaging.RpmContent;
+import ru.kultishov.rpm.build.RpmEnvironment;
+import ru.kultishov.rpm.packaging.RpmPackage;
+import ru.kultishov.rpm.packaging.RpmWorkspace;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Mojo;
@@ -49,7 +54,7 @@ public final class BuildRpmMojo extends AbstractRpmToolMojo {
             Files.deleteIfExists(rpmFile);
             Files.deleteIfExists(workspace.root().resolve("environment.txt"));
             String output;
-            try (RpmEnvironment environment = RpmEnvironment.forBuild(this, workspace)) {
+            try (RpmEnvironment environment = RpmEnvironment.forBuild(buildSettings(), workspace, getLog())) {
                 output = environment.build(rpmPackage, rpmbuildExecutable);
             }
             if (!Files.isRegularFile(rpmFile) || Files.isSymbolicLink(rpmFile)) {

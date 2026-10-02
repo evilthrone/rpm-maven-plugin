@@ -1,4 +1,6 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.packaging;
+
+import ru.kultishov.rpm.config.RpmMapping;
 
 import org.apache.maven.plugin.MojoExecutionException;
 
@@ -17,8 +19,8 @@ import java.util.Map;
 import java.util.Properties;
 
 // Validated package contents shared by prepare, build, and verify
-final class RpmContent {
-    record Entry(String destination, boolean directory, String mode, String owner, String group,
+public final class RpmContent {
+    public record Entry(String destination, boolean directory, String mode, String owner, String group,
                  boolean config, int sourceIndex, String sourceName, Path source) {
     }
 
@@ -28,15 +30,15 @@ final class RpmContent {
         this.entries = List.copyOf(entries);
     }
 
-    List<Entry> entries() {
+    public List<Entry> entries() {
         return entries;
     }
 
-    static RpmContent defaults(RpmPackage rpmPackage) throws MojoExecutionException {
+    public static RpmContent defaults(RpmPackage rpmPackage) throws MojoExecutionException {
         return prepare(rpmPackage, null, Path.of("."), List.of());
     }
 
-    static RpmContent prepare(RpmPackage rpmPackage, Path jar, Path baseDirectory, List<RpmMapping> mappings)
+    public static RpmContent prepare(RpmPackage rpmPackage, Path jar, Path baseDirectory, List<RpmMapping> mappings)
             throws MojoExecutionException {
         Map<String, Entry> result = new LinkedHashMap<>();
         add(result, new Entry(rpmPackage.installDirectory(), true, "0755", "root", "root", false,
@@ -135,7 +137,7 @@ final class RpmContent {
         }
     }
 
-    static void rejectSymlink(Path path) throws MojoExecutionException {
+    public static void rejectSymlink(Path path) throws MojoExecutionException {
         Path absolute = path.toAbsolutePath().normalize();
         for (Path current = absolute; current != null; current = current.getParent()) {
             if (Files.isSymbolicLink(current)) {
@@ -144,7 +146,7 @@ final class RpmContent {
         }
     }
 
-    void stage(Path sourcesDirectory) throws IOException, MojoExecutionException {
+    public void stage(Path sourcesDirectory) throws IOException, MojoExecutionException {
         for (Entry entry : entries) {
             if (entry.directory()) {
                 continue;
@@ -159,7 +161,7 @@ final class RpmContent {
         }
     }
 
-    void validateSources(Path sourcesDirectory) throws MojoExecutionException {
+    public void validateSources(Path sourcesDirectory) throws MojoExecutionException {
         for (Entry entry : entries) {
             if (!entry.directory()) {
                 Path source = sourcesDirectory.resolve(entry.sourceName());
@@ -171,7 +173,7 @@ final class RpmContent {
         }
     }
 
-    void verify(String rpmFiles) throws MojoExecutionException {
+    public void verify(String rpmFiles) throws MojoExecutionException {
         Map<String, String[]> actual = new LinkedHashMap<>();
         for (String line : rpmFiles.lines().toList()) {
             String[] fields = line.split("\\|", -1);
@@ -202,7 +204,7 @@ final class RpmContent {
         }
     }
 
-    void save(Path file) throws IOException, MojoExecutionException {
+    public void save(Path file) throws IOException, MojoExecutionException {
         rejectSymlink(file);
         Properties properties = new Properties();
         properties.setProperty("count", Integer.toString(entries.size()));
@@ -223,7 +225,7 @@ final class RpmContent {
         }
     }
 
-    static RpmContent load(Path file) throws IOException, MojoExecutionException {
+    public static RpmContent load(Path file) throws IOException, MojoExecutionException {
         rejectSymlink(file);
         Properties properties = new Properties();
         try (Reader reader = Files.newBufferedReader(file)) {

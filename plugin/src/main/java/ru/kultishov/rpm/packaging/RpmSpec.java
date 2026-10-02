@@ -1,24 +1,26 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.packaging;
+
+import ru.kultishov.rpm.runtime.RpmSystemd;
 
 import org.apache.maven.plugin.MojoExecutionException;
 
 import java.time.Instant;
 
-final class RpmSpec {
+public final class RpmSpec {
     private RpmSpec() {
     }
 
-    static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime)
+    public static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime)
             throws MojoExecutionException {
         return generate(rpmPackage, summary, license, group, buildTime, RpmContent.defaults(rpmPackage));
     }
 
-    static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime,
+    public static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime,
                            RpmContent content) throws MojoExecutionException {
         return generate(rpmPackage, summary, license, group, buildTime, content, null);
     }
 
-    static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime,
+    public static String generate(RpmPackage rpmPackage, String summary, String license, String group, Instant buildTime,
                            RpmContent content, RpmSystemd.Service service) throws MojoExecutionException {
         validateLine("Summary", summary);
         validateLine("License", license);

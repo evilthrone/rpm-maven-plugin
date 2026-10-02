@@ -1,4 +1,8 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.runtime;
+
+import ru.kultishov.rpm.packaging.RpmContent;
+import ru.kultishov.rpm.packaging.RpmPackage;
+import ru.kultishov.rpm.config.RpmService;
 
 import org.apache.maven.plugin.MojoExecutionException;
 
@@ -8,20 +12,20 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-final class RpmSystemd {
+public final class RpmSystemd {
     private RpmSystemd() {
     }
 
-    record Service(String name, String user, String group, String unit) {
-        String destination() { return "/lib/systemd/system/" + name + ".service"; }
+    public record Service(String name, String user, String group, String unit) {
+        public String destination() { return "/lib/systemd/system/" + name + ".service"; }
 
-        String requirements() {
+        public String requirements() {
             return "Requires(pre): /usr/sbin/useradd, /usr/sbin/groupadd, /usr/bin/getent\n"
                     + "Requires(post): /usr/sbin/post_service\n"
                     + "Requires(preun): /usr/sbin/preun_service\n";
         }
 
-        String scriptlets() {
+        public String scriptlets() {
             return "\n%pre\nset -e\n"
                     + "getent group '" + group + "' >/dev/null || /usr/sbin/groupadd -r '" + group + "'\n"
                     + "getent passwd '" + user + "' >/dev/null || /usr/sbin/useradd -r -g '" + group
@@ -31,7 +35,7 @@ final class RpmSystemd {
         }
     }
 
-    static Service prepare(RpmService configuration, RpmPackage rpm, Path baseDirectory)
+    public static Service prepare(RpmService configuration, RpmPackage rpm, Path baseDirectory)
             throws MojoExecutionException, IOException {
         String name = configuration.getName() == null ? rpm.name() : configuration.getName();
         String user = configuration.getUser() == null ? rpm.name() : configuration.getUser();

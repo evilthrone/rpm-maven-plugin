@@ -1,10 +1,10 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.config;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 
-/** Optional systemd service configuration in the consuming POM. */
+// Optional systemd service configuration in the consuming POM
 public final class RpmService {
     private File unitFile;
     private String name;

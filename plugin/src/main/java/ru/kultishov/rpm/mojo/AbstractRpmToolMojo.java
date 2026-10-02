@@ -1,4 +1,6 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.mojo;
+
+import ru.kultishov.rpm.config.RpmBuildSettings;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -30,4 +32,9 @@ public abstract class AbstractRpmToolMojo extends AbstractMojo {
 
     @Parameter(property = "rpm.commandTimeoutSeconds", defaultValue = "120")
     protected long timeoutSeconds = 120;
+
+    protected final RpmBuildSettings buildSettings() {
+        return new RpmBuildSettings(buildMode, dockerExecutable, containerImage, containerTimeoutSeconds,
+                repositoryTimeoutSeconds, repositoryMirrors, repositories, timeoutSeconds);
+    }
 }

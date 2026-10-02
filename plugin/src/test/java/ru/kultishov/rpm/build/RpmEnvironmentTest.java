@@ -1,4 +1,8 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.build;
+
+import ru.kultishov.rpm.config.RpmBuildSettings;
+import ru.kultishov.rpm.packaging.RpmWorkspace;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.junit.jupiter.api.Test;
@@ -58,13 +62,14 @@ class RpmEnvironmentTest {
 
     @Test
     void verificationRequiresRecordedBuildEnvironment() throws Exception {
+        RpmBuildSettings settings = new RpmBuildSettings("auto", "docker", "alt:p11", 900, 20, null, null, 120);
         RpmWorkspace workspace = new RpmWorkspace(temporaryDirectory);
         workspace.create();
-        assertThrows(MojoExecutionException.class, () -> RpmEnvironment.forVerify(new VerifyRpmMojo(), workspace));
+        assertThrows(MojoExecutionException.class, () -> RpmEnvironment.forVerify(settings, workspace, new SystemStreamLog()));
         Files.writeString(workspace.root().resolve("environment.txt"), "alt:latest");
-        assertThrows(MojoExecutionException.class, () -> RpmEnvironment.forVerify(new VerifyRpmMojo(), workspace));
+        assertThrows(MojoExecutionException.class, () -> RpmEnvironment.forVerify(settings, workspace, new SystemStreamLog()));
         Files.writeString(workspace.root().resolve("environment.txt"), "sha256:" + "a".repeat(64));
-        try (RpmEnvironment environment = RpmEnvironment.forVerify(new VerifyRpmMojo(), workspace)) {
+        try (RpmEnvironment environment = RpmEnvironment.forVerify(settings, workspace, new SystemStreamLog())) {
             assertNotNull(environment);
         }
     }

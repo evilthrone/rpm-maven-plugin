@@ -1,4 +1,4 @@
-package ru.kultishov.rpm;
+package ru.kultishov.rpm.config;
 
 import java.io.File;
 
