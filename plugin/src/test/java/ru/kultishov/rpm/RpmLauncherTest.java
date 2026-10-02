@@ -40,8 +40,13 @@ class RpmLauncherTest {
 
     private Result run(String jar, String javaExecutable, Map<String, String> environment, String... arguments)
             throws Exception {
+        return runRequirement(jar, javaExecutable, "java-21-openjdk-headless", environment, arguments);
+    }
+
+    private Result runRequirement(String jar, String javaExecutable, String requirement,
+                                  Map<String, String> environment, String... arguments) throws Exception {
         Path launcher = temporaryDirectory.resolve("launcher.sh");
-        Files.writeString(launcher, RpmLauncher.generate(jar, javaExecutable));
+        Files.writeString(launcher, RpmLauncher.generate(jar, javaExecutable, requirement));
         var command = new java.util.ArrayList<>(List.of(shell().toString(), launcher.toString()));
         command.addAll(List.of(arguments));
         ProcessBuilder builder = new ProcessBuilder(command).directory(temporaryDirectory.toFile())
@@ -57,6 +62,70 @@ class RpmLauncherTest {
         assertTrue(finished, "Launcher did not finish");
         return new Result(process.exitValue(), new String(process.getInputStream().readAllBytes(),
                 java.nio.charset.StandardCharsets.UTF_8).replace("\r\n", "\n"));
+    }
+
+    private Path fakeRpm(String files, int exitCode) throws Exception {
+        Path bin = Files.createDirectories(temporaryDirectory.resolve("mock-bin"));
+        Path rpm = bin.resolve("rpm");
+        String queryLog = temporaryDirectory.resolve("rpm-query.log").toString().replace('\\', '/');
+        Files.writeString(rpm, "#!/bin/sh\nprintf '%s\\n' \"$@\" > '" + queryLog.replace("'", "'\"'\"'")
+                + "'\nprintf '%s\\n' '" + files.replace("'", "'\"'\"'") + "'\nexit " + exitCode + "\n");
+        rpm.toFile().setExecutable(true);
+        Files.writeString(bin.resolve("java"), "#!/bin/sh\nprintf '%s\\n' 'wrong Java from PATH'\nexit 17\n");
+        bin.resolve("java").toFile().setExecutable(true);
+        return bin;
+    }
+
+    @Test
+    void autoUsesJavaOwnedByRequiredPackageInsteadOfPathAlternative() throws Exception {
+        Path java = fakeJava(temporaryDirectory.resolve("jdk 21/bin/java"));
+        Path bin = fakeRpm("/usr/bin/java\n" + java.toString().replace('\\', '/'), 0);
+        Result result = runRequirement("/usr/share/demo/demo.jar", "auto", "java-21-openjdk-headless >= 21.0.1",
+                Map.of("PATH", bin.toString().replace('\\', '/')), "8081");
+        assertEquals(0, result.exitCode(), result.output());
+        assertEquals("<-jar>\n</usr/share/demo/demo.jar>\n<8081>\n", result.output());
+        assertEquals("-ql\njava-21-openjdk-headless\n",
+                Files.readString(temporaryDirectory.resolve("rpm-query.log")).replace("\r\n", "\n"));
+    }
+
+    @Test
+    void autoUsesConfiguredJrePackageWithoutHardcodingJava21() throws Exception {
+        Path java = fakeJava(temporaryDirectory.resolve("jdk 17/bin/java"));
+        Path bin = fakeRpm(java.toString().replace('\\', '/'), 0);
+        Result result = runRequirement("/usr/share/app/app.jar", "auto", "java-17-openjdk-headless",
+                Map.of("PATH", bin.toString().replace('\\', '/')));
+        assertEquals(0, result.exitCode(), result.output());
+        assertEquals("-ql\njava-17-openjdk-headless\n",
+                Files.readString(temporaryDirectory.resolve("rpm-query.log")).replace("\r\n", "\n"));
+    }
+
+    @Test
+    void javaHomeOverridesAutomaticPackageLookup() throws Exception {
+        Path javaHome = temporaryDirectory.resolve("custom jdk");
+        fakeJava(javaHome.resolve("bin/java"));
+        Path bin = fakeRpm("missing", 1);
+        Result result = run("/usr/share/demo/demo.jar", "auto",
+                Map.of("JAVA_HOME", javaHome.toString(), "PATH", bin.toString().replace('\\', '/')));
+        assertEquals(0, result.exitCode(), result.output());
+        assertFalse(Files.exists(temporaryDirectory.resolve("rpm-query.log")));
+    }
+
+    @Test
+    void autoReportsMissingJrePackageWithoutFallingBackToPath() throws Exception {
+        Path bin = fakeRpm("package is not installed", 1);
+        Result result = run("/usr/share/demo/demo.jar", "auto", Map.of("PATH", bin.toString().replace('\\', '/')));
+        assertEquals(1, result.exitCode());
+        assertTrue(result.output().contains("Cannot query JRE package java-21-openjdk-headless"));
+        assertFalse(result.output().contains("wrong Java from PATH"));
+    }
+
+    @Test
+    void autoRejectsSharedJavaAlternativeAndMissingPackageExecutable() throws Exception {
+        Path bin = fakeRpm("/usr/bin/java\n/bin/java\n/nonexistent/jdk/bin/java", 0);
+        Result result = run("/usr/share/demo/demo.jar", "auto", Map.of("PATH", bin.toString().replace('\\', '/')));
+        assertEquals(1, result.exitCode());
+        assertTrue(result.output().contains("No JVM executable found in JRE package java-21-openjdk-headless"));
+        assertFalse(result.output().contains("wrong Java from PATH"));
     }
 
     @Test
@@ -110,10 +179,10 @@ class RpmLauncherTest {
     void rejectsInvalidExecutableSettings() {
         for (String executable : new String[]{"", " ", "java\nexit 0", "java\r", "java\0"}) {
             assertThrows(MojoExecutionException.class,
-                    () -> RpmLauncher.generate("/usr/share/demo/demo.jar", executable));
+                    () -> RpmLauncher.generate("/usr/share/demo/demo.jar", executable, "java-21-openjdk-headless"));
         }
         assertThrows(MojoExecutionException.class,
-                () -> RpmLauncher.generate("/usr/share/demo/demo.jar", null));
+                () -> RpmLauncher.generate("/usr/share/demo/demo.jar", null, "java-21-openjdk-headless"));
     }
 
     @Test
@@ -121,7 +190,7 @@ class RpmLauncherTest {
         RpmPackage rpmPackage = RpmPackage.create("demo", "1.0.0", 1, "java-21-openjdk-headless", Instant.EPOCH);
         Path jar = Files.writeString(temporaryDirectory.resolve("demo.jar"), "JAR");
         Path launcher = Files.writeString(temporaryDirectory.resolve("launcher.sh"),
-                RpmLauncher.generate(rpmPackage.jarPath(), "java"));
+                RpmLauncher.generate(rpmPackage.jarPath(), "java", rpmPackage.jreRequirement()));
         RpmMapping mapping = new RpmMapping();
         mapping.setSource(launcher.toFile());
         mapping.setDestination("/usr/bin/demo");

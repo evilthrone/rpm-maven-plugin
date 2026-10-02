@@ -108,6 +108,41 @@ class RpmSystemdTest {
     }
 
     @Test
+    void rejectsCustomUnitWhoseExecStartWasReset() throws Exception {
+        Path unit = temporaryDirectory.resolve("reset.service");
+        RpmService configuration = new RpmService();
+        configuration.setUnitFile(unit.toFile());
+        for (String commands : List.of("ExecStart=/usr/bin/demo\nExecStart=\n",
+                "ExecStart=/usr/bin/demo\nExecStart=   \n", "ExecStart=\n")) {
+            Files.writeString(unit, "[Service]\nUser=demo\nGroup=demo\n" + commands);
+            assertThrows(MojoExecutionException.class,
+                    () -> RpmSystemd.prepare(configuration, rpm(), temporaryDirectory));
+        }
+    }
+
+    @Test
+    void acceptsCustomUnitWithOneCommandAfterReset() throws Exception {
+        Path unit = temporaryDirectory.resolve("replace.service");
+        String contents = "[Service]\nUser=demo\nGroup=demo\nExecStart=/usr/bin/old-demo\n"
+                + "ExecStart=\nExecStart=/usr/bin/demo 8081\n";
+        Files.writeString(unit, contents);
+        RpmService configuration = new RpmService();
+        configuration.setUnitFile(unit.toFile());
+        assertEquals(contents, RpmSystemd.prepare(configuration, rpm(), temporaryDirectory).unit());
+    }
+
+    @Test
+    void rejectsMultipleEffectiveExecStartCommands() throws Exception {
+        Path unit = temporaryDirectory.resolve("multiple.service");
+        Files.writeString(unit, "[Service]\nUser=demo\nGroup=demo\nExecStart=\n"
+                + "ExecStart=/usr/bin/demo\nExecStart=/usr/bin/another-demo\n");
+        RpmService configuration = new RpmService();
+        configuration.setUnitFile(unit.toFile());
+        assertThrows(MojoExecutionException.class,
+                () -> RpmSystemd.prepare(configuration, rpm(), temporaryDirectory));
+    }
+
+    @Test
     void rejectsMissingOrMismatchedAccountAndInvalidCustomUnits() throws Exception {
         RpmService configuration = new RpmService();
         Path unit = temporaryDirectory.resolve("custom.service");
@@ -178,7 +213,7 @@ class RpmSystemdTest {
                 Map.entry("buildDirectory", build.toFile()), Map.entry("baseDirectory", temporaryDirectory.toFile()),
                 Map.entry("finalName", "demo-1.0.0"), Map.entry("projectVersion", "1.0.0"),
                 Map.entry("packaging", "jar"), Map.entry("rpmName", "demo"), Map.entry("releaseNumber", 1),
-                Map.entry("jreRequirement", "java-21-openjdk-headless"), Map.entry("javaExecutable", "java"),
+                Map.entry("jreRequirement", "java-21-openjdk-headless"), Map.entry("javaExecutable", "auto"),
                 Map.entry("summary", "Demo"), Map.entry("license", "Proprietary"),
                 Map.entry("group", "Development/Other"), Map.entry("service", configuration),
                 Map.entry("mappings", List.of(logs)), Map.entry("fixedBuildTime", "2026-10-01T12:00:00Z"));
@@ -194,6 +229,8 @@ class RpmSystemdTest {
         assertTrue(content.entries().stream().anyMatch(entry -> entry.destination().equals("/lib/systemd/system/demo.service")
                 && entry.mode().equals("0644") && entry.owner().equals("root")));
         assertTrue(content.entries().stream().anyMatch(entry -> entry.destination().equals("/usr/bin/demo")));
+        assertTrue(Files.readString(workspace.sourcesDirectory().resolve("rpm-source-1"))
+                .contains("rpm -ql 'java-21-openjdk-headless'"));
         assertTrue(Files.readString(workspace.spec(rpm())).contains("%post_service demo"));
         assertTrue(Files.readString(workspace.sourcesDirectory().resolve("rpm-source-2"))
                 .contains("ExecStart=/usr/bin/demo \"8081\""));

@@ -12,7 +12,13 @@ argument boundaries, including spaces and empty arguments.
 ## Java selection
 
 If `JAVA_HOME` is nonempty, the launcher uses `$JAVA_HOME/bin/java`.
-Otherwise it uses the executable configured at package build time:
+Otherwise the default `javaExecutable=auto` queries the package named in
+`jreRequirement` using `rpm -ql` and selects its executable `bin/java`.
+Shared `/usr/bin/java` and `/bin/java` alternatives are skipped. The default
+dependency selects Java 21 even when `java` on PATH selects another release.
+Package version constraints are removed only for this file lookup.
+
+To explicitly use the executable from PATH instead:
 
 ```xml
 <configuration>
@@ -20,14 +26,12 @@ Otherwise it uses the executable configured at package build time:
 </configuration>
 ```
 
-`java` is the default and is resolved through the runtime `PATH`. An absolute
-Linux path is also supported. The build-time property is `rpm.javaExecutable`.
-An invalid `JAVA_HOME` or unavailable executable causes launch to fail; the
-launcher does not silently switch to another Java installation.
-
-The RPM's JRE dependency and Java selection are separate settings. Installing
-`java-21-openjdk-headless` does not guarantee that `java` in `PATH` selects Java
-21. Set `JAVA_HOME` or configure the executable when multiple JDKs are installed.
+An absolute Linux path is also supported. The build-time property is
+`rpm.javaExecutable`. Explicit `JAVA_HOME` and executable overrides must select
+a Java version compatible with the application. An unavailable package or
+executable causes launch to fail without falling back to a shared alternative.
+Automatic lookup requires a concrete JRE package owning a `bin/java` executable;
+for a virtual dependency, configure `JAVA_HOME` or `javaExecutable` explicitly.
 
 ## JVM options and application arguments
 
