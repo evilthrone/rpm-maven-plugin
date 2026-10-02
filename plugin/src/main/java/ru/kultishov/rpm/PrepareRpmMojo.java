@@ -46,7 +46,7 @@ public final class PrepareRpmMojo extends AbstractMojo {
     @Parameter(property = "rpm.jreRequirement", defaultValue = "java-21-openjdk-headless")
     private String jreRequirement;
 
-    @Parameter(property = "rpm.javaExecutable", defaultValue = "java")
+    @Parameter(property = "rpm.javaExecutable", defaultValue = "auto")
     private String javaExecutable;
 
     @Parameter(property = "rpm.group", defaultValue = "Development/Other")
@@ -90,7 +90,7 @@ public final class PrepareRpmMojo extends AbstractMojo {
             }
             Path launcher = workspace.root().resolve("launcher.sh");
             RpmContent.rejectSymlink(launcher);
-            Files.writeString(launcher, RpmLauncher.generate(rpmPackage.jarPath(), javaExecutable),
+            Files.writeString(launcher, RpmLauncher.generate(rpmPackage.jarPath(), javaExecutable, rpmPackage.jreRequirement()),
                     StandardCharsets.UTF_8);
             RpmMapping launcherMapping = new RpmMapping();
             launcherMapping.setSource(launcher.toFile());

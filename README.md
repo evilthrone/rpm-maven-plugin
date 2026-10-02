@@ -70,8 +70,8 @@ No `<configuration>` fields are required for basic packaging. Add optional setti
 | `summary` | `Java application packaged by Maven` | Package summary |
 | `license` | `Proprietary` | Package license |
 | `group` | `Development/Other` | RPM category, unrelated to Linux user groups |
-| `jreRequirement` | `java-21-openjdk-headless` | ALT runtime dependency; change to match your application |
-| `javaExecutable` | `java` | Launcher executable; `JAVA_HOME` takes precedence |
+| `jreRequirement` | `java-21-openjdk-headless` | Required ALT Java package, written as RPM `Requires` |
+| `javaExecutable` | `auto` | `auto`, a command such as `java`, or an executable path |
 | `buildMode` | `auto` | `auto`, `local` or `container` |
 | `containerImage` | `alt:p11` | Docker base image |
 | `service` | None | Optional systemd service |
@@ -82,6 +82,24 @@ The JAR is installed as `/usr/share/<rpmName>/<rpmName>.jar`; its launcher is `/
 Supported Maven versions: numeric versions such as `1.0.0`, optionally ending in `-RC1` or `-SNAPSHOT`. These become `1.0.0`, `1.0.0~rc1` and `1.0.0~snapshot.<UTC timestamp>`.
 
 Increase the release with `mvn clean package '-Drpm.release=2'`. Optional `'-Drpm.buildTime=2026-10-01T12:00:00Z'` fixes the snapshot timestamp for testing.
+
+### Java runtime
+
+- `jreRequirement` specifies the Java package needed on the target system. `rpm -Uvh` rejects installation if the dependency is missing; install it first.
+- `javaExecutable=auto` finds Java inside that installed package. Use a concrete package that owns a Java executable.
+- `javaExecutable=java` searches `PATH`; an absolute path such as `/opt/jdk-21/bin/java` selects that executable directly.
+- If `JAVA_HOME` is set when launching the application, `$JAVA_HOME/bin/java` overrides `javaExecutable`.
+
+Example for an application compatible with Java 17:
+
+```xml
+<configuration>
+    <jreRequirement>java-17-openjdk-headless</jreRequirement>
+    <javaExecutable>auto</javaExecutable>
+</configuration>
+```
+
+These settings do not change compilation or remove the RPM dependency. The Maven plugin itself needs JDK 21+; the demo is compiled for Java 21.
 
 ### Service and additional files
 

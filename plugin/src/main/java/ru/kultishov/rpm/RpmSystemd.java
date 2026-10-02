@@ -114,7 +114,7 @@ final class RpmSystemd {
                 switch (pair[0].trim()) {
                     case "User" -> { users++; if (!pair[1].trim().equals(user)) throw new MojoExecutionException("Unit User must match service user"); }
                     case "Group" -> { groups++; if (!pair[1].trim().equals(group)) throw new MojoExecutionException("Unit Group must match service group"); }
-                    case "ExecStart" -> { if (!pair[1].isBlank()) commands++; }
+                    case "ExecStart" -> { commands = pair[1].isBlank() ? 0 : commands + 1; }
                     case "DynamicUser" -> throw new MojoExecutionException("DynamicUser conflicts with the RPM managed service account");
                     default -> { }
                 }

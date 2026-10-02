@@ -22,9 +22,9 @@ Service integration is optional. Add `<service>` to the consuming plugin's
 ```
 
 Omit the example `JAVA_HOME` entry unless you have a real target path.
-Without it, the launcher uses `javaExecutable`, defaulting to `java` from PATH.
-The demo uses the repository Java selected by the system and does not pin a
-patch-version directory. The JRE dependency remains independently configurable.
+Without it, the launcher uses `javaExecutable`, defaulting to `auto`: Java is
+located through the configured JRE package's file list. The demo therefore uses
+Java 21 without pinning a patch-version directory or relying on PATH alternatives.
 
 `name` defaults to the RPM name, `user` to the RPM name, and `group` to the user.
 Names accept lowercase letters, digits, underscores and hyphens, beginning with
@@ -54,7 +54,9 @@ For a supplied unit, add this directive in `[Service]` yourself if needed.
 Relative paths resolve against the consuming project. The source must be a
 regular file without symbolic links. CRLF is normalized to LF.
 The file must contain exactly one matching `User=`, `Group=` and nonempty
-`ExecStart=` in `[Service]`. `DynamicUser` and line continuations are rejected.
+effective `ExecStart=` in `[Service]`. Empty `ExecStart=` resets the preceding
+commands; one command must remain after the last reset. `DynamicUser` and line
+continuations are rejected.
 Other directives are retained as supplied. Generated description, arguments,
 environment and restart settings do not modify a supplied unit.
 The author is responsible for its systemd semantics; the plugin's checks are

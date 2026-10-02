@@ -15,8 +15,8 @@ rejected. The requirement is saved during preparation and checked against the
 built RPM by `verify`.
 
 The default dependency supplies Java 21 for the demo, which targets Java 21.
-It does not select the executable behind `/usr/bin/java`. When several JDKs
-are installed, use the executable from the required package explicitly.
+The default launcher finds Java in this package instead of relying on the
+shared `/usr/bin/java` alternative, so another JDK on PATH does not replace it.
 Applications targeting a newer Java release must configure a suitable JRE
 requirement. The generated launcher supports Java selection through
 `JAVA_HOME` or `rpm.javaExecutable`; see [launcher.md](launcher.md).
