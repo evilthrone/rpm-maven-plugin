@@ -44,6 +44,9 @@ other content in the RPM plugin's `<configuration>`:
   tree, `mode` applies to every directory, and `fileMode` applies to every file
   (default `0644`). Use four octal digits; special permission bits are supported
   (for example `2750` for a directory with setgid).
+  Build-root directories use temporary `0755` permissions so files can be copied
+  into them. The RPM receives the configured directory permissions through `%attr`,
+  including read-only modes such as `0555`.
 - `owner` and `group` default to `root`. They are Linux account names, not the
   package category `rpm.group`. The optional [service configuration](systemd-service.md)
   creates its service user and group in `%pre`. Other accounts must already exist.
@@ -70,14 +73,15 @@ RPM queries.
 
 ## Demo checks on ALT p11
 
-Run the following from a fresh checkout of this branch, with no existing demo
+Run the following from a checkout of the repository, with no existing demo
 installation or leftover `/etc/demo/demo.properties` configuration.
 
 Build as the ordinary user, using a fixed time so both builds have the same
 RPM Version and differ only by Release:
 
 ```bash
-mvn clean package -Drpm.buildTime=2026-09-30T12:00:00Z -Drpm.release=1
+build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+mvn clean package "-Drpm.buildTime=$build_time" -Drpm.release=1
 cp demo/target/rpm-work/RPMS/noarch/*.rpm /tmp/demo-package-content-alt1.rpm
 rpm -qplv /tmp/demo-package-content-alt1.rpm
 rpm -qp --queryformat '[%{FILENAMES}|%{FILEMODES}|%{FILEUSERNAME}|%{FILEGROUPNAME}|%{FILEFLAGS}\n]' /tmp/demo-package-content-alt1.rpm
@@ -103,7 +107,7 @@ Change the packaged default as the ordinary user, then build Release alt2:
 ```bash
 cp demo/src/main/rpm/demo.properties /tmp/demo-package-content-original.properties
 printf 'example.message=updated-package-value\n' > demo/src/main/rpm/demo.properties
-mvn clean package -Drpm.buildTime=2026-09-30T12:00:00Z -Drpm.release=2
+mvn clean package "-Drpm.buildTime=$build_time" -Drpm.release=2
 cp demo/target/rpm-work/RPMS/noarch/*.rpm /tmp/demo-package-content-alt2.rpm
 cp /tmp/demo-package-content-original.properties demo/src/main/rpm/demo.properties
 ```
@@ -120,7 +124,7 @@ rpm -q demo
 
 Expect the original path to keep `example.message=user-value`, the `.rpmnew`
 file to contain `example.message=updated-package-value`, and the installed
-release to be `alt2`. The demo HTTP server does not read this example file yet;
+release to be `alt2`. The demo HTTP server does not read this example file;
 this check exercises package configuration handling.
 
 Remove the package, inspect any retained configuration, and leave the root shell:
@@ -137,6 +141,3 @@ The package, JAR directory, and empty log directory should be gone. RPM may
 preserve the modified configuration as `.rpmsave` and retain `.rpmnew`, so
 `/etc/demo` can remain nonempty. Inspect and remove those test files manually
 only when no longer needed. The plugin deliberately does not erase user data.
-
-Actual ALT build, installation, and upgrade results must be recorded after
-running these steps; generation of a spec alone does not verify an RPM upgrade.

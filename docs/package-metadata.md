@@ -32,7 +32,8 @@ mvn clean package '-Drpm.skip=true'
 ```
 
 This runs the Java tests, builds both JARs, and generates the spec. RPM build
-and verification are skipped and must be checked on ALT.
+and verification are skipped. Run without `rpm.skip` to build and verify the
+RPM locally on ALT or through Docker on other systems.
 
 ## Checks on ALT p11
 
@@ -63,16 +64,17 @@ ordinary user:
 ```bash
 java_binary=$(rpm -ql java-21-openjdk-headless | grep -m1 '^/usr/lib/jvm/.*/bin/java$')
 "$java_binary" -version
-"$java_binary" -jar /usr/share/demo/demo.jar 8081
+"$java_binary" -jar /usr/share/demo/demo.jar 8082
 ```
 
 In another terminal:
 
 ```bash
-curl -i http://localhost:8081/health
+curl -i http://localhost:8082/health
 ```
 
-Expect HTTP 200 and body `OK`. Stop the server with Ctrl+C, enter a root shell,
+Use a free port; the demo systemd service uses 8081. Expect HTTP 200 and body
+`OK`. Stop the server with Ctrl+C, enter a root shell,
 and remove the package:
 
 ```bash
@@ -86,6 +88,3 @@ test ! -e /usr/share/demo && echo 'Application directory removed'
 Expect the package to be absent and the application directory to be removed.
 If another program has placed files in that directory, RPM may retain it;
 do not delete unrelated files to force this check to pass.
-
-These ALT checks are manual acceptance steps, not a claim that they have
-already passed for this revision.

@@ -9,7 +9,7 @@ mvn clean package
 On ALT Linux the plugin uses the local `rpmbuild` and `rpm` tools. On Windows,
 macOS and other Linux distributions it uses Docker with the official `alt:p11`
 image. Docker must be installed and its Linux engine running. Maven still needs
-Java 21 on the host.
+JDK 21+ on the host.
 
 The first build installs `rpm-build` in a derived image. Subsequent builds reuse
 Docker's cached layers, including after `mvn clean`. Maven does not install RPM
@@ -72,7 +72,7 @@ official repository. The same image setup can be cached by Docker on later runs.
 | `rpm.rpmExecutable` | `rpm` | Local query executable |
 
 Containers run as `linux/amd64`. Generated packages remain `noarch`. The Maven
-plugin requires Java 21; the generated RPM's Java dependency is configured
+plugin requires JDK 21+; the generated RPM's Java dependency is configured
 separately by `rpm.jreRequirement`.
 
 Diagnostics are under `target/rpm-work/`: `container-setup.log`,
@@ -120,6 +120,3 @@ To download the RPM inside an ALT VM:
 4. Install the extracted RPM as root and test the service on the VM.
 
 See [GitHub's artifact download instructions](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/download-workflow-artifacts?tool=webui).
-
-Workflow configuration can be checked locally; the actual GitHub runner and
-artifact upload must be checked after pushing the changes and starting a run.

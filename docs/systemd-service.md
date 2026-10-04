@@ -99,11 +99,12 @@ helper scripts supplied by the ALT p11 test VM.
 
 ## Manual acceptance check
 
-Run builds as the ordinary user. Fixed time and release numbers below are only
-for comparing two packages with the same RPM Version:
+Run builds as the ordinary user. Save the current UTC time and reuse it for both
+builds so their RPM Version stays the same while Release increases:
 
 ```bash
-mvn clean package -Drpm.buildTime=2026-10-01T12:00:00Z -Drpm.release=1
+build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+mvn clean package "-Drpm.buildTime=$build_time" -Drpm.release=1
 cp demo/target/rpm-work/RPMS/noarch/*.rpm /tmp/demo-service-alt1.rpm
 rpm -qplv /tmp/demo-service-alt1.rpm
 rpm -qp --scripts /tmp/demo-service-alt1.rpm
@@ -137,7 +138,7 @@ For diagnostics, use `journalctl -u demo -n 50 --no-pager` as root.
 Build alt2 as the ordinary user while the service is running:
 
 ```bash
-mvn clean package -Drpm.buildTime=2026-10-01T12:00:00Z -Drpm.release=2
+mvn clean package "-Drpm.buildTime=$build_time" -Drpm.release=2
 cp demo/target/rpm-work/RPMS/noarch/*.rpm /tmp/demo-service-alt2.rpm
 su -
 rpm -Uvh /tmp/demo-service-alt2.rpm
@@ -158,5 +159,3 @@ Expect alt2 installed, a new nonzero MainPID after the upgrade, and HTTP 200/OK.
 After removal the service must not be active and the endpoint must not respond.
 Preserved configuration backups and nonempty application data may remain;
 RPM does not erase user changes. The service account remains intentionally.
-The commands above are a verification procedure, not a claim that VM acceptance
-has already passed for this stage.

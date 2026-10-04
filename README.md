@@ -79,7 +79,7 @@ No `<configuration>` fields are required for basic packaging. Add optional setti
 
 The JAR is installed as `/usr/share/<rpmName>/<rpmName>.jar`; its launcher is `/usr/bin/<rpmName>`.
 
-Supported Maven versions: numeric versions such as `1.0.0`, optionally ending in `-RC1` or `-SNAPSHOT`. These become `1.0.0`, `1.0.0~rc1` and `1.0.0~snapshot.<UTC timestamp>`.
+Supported project versions: numeric versions such as `1.0.0`, optionally ending in `-RC1` or `-SNAPSHOT`. These become `1.0.0`, `1.0.0~rc1` and `1.0.0~snapshot.<UTC timestamp>`.
 
 Increase the release with `mvn clean package '-Drpm.release=2'`. Optional `'-Drpm.buildTime=2026-10-01T12:00:00Z'` fixes the snapshot timestamp for testing.
 

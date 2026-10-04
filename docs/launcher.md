@@ -36,7 +36,7 @@ for a virtual dependency, configure `JAVA_HOME` or `javaExecutable` explicitly.
 ## JVM options and application arguments
 
 ```bash
-JAVA_OPTS='-Xmx128m -Ddemo.marker=launcher-test' demo 8081
+JAVA_OPTS='-Xmx128m -Ddemo.marker=launcher-test' demo 8082
 ```
 
 `JAVA_OPTS` is a whitespace-separated list of JVM options. It is not evaluated
@@ -47,7 +47,7 @@ cannot be represented through this variable in this version.
 Application arguments use ordinary shell quoting:
 
 ```bash
-demo 8081
+demo 8082
 ```
 
 For background service management, see [systemd service](systemd-service.md).
@@ -78,14 +78,15 @@ Start as the ordinary user using Java 21 from the ALT package:
 
 ```bash
 java_binary=$(rpm -ql java-21-openjdk-headless | grep -m1 '^/usr/lib/jvm/.*/bin/java$')
-JAVA_HOME=$(dirname "$(dirname "$java_binary")") JAVA_OPTS='-Xmx128m -XshowSettings:vm' demo 8081
+JAVA_HOME=$(dirname "$(dirname "$java_binary")") JAVA_OPTS='-Xmx128m -XshowSettings:vm' demo 8082
 ```
 
 Expect VM settings showing a maximum heap of approximately 128 MB and
-`Demo server listening on port 8081`. In a second terminal:
+`Demo server listening on port 8082`. Use a free port; the demo systemd service
+uses 8081. In a second terminal:
 
 ```bash
-curl -i http://localhost:8081/health
+curl -i http://localhost:8082/health
 ```
 
 Expect HTTP 200 and body `OK`. Stop the process with Ctrl+C and confirm the
@@ -98,5 +99,5 @@ exit
 test ! -e /usr/bin/demo && echo 'Launcher removed'
 ```
 
-Modified configuration left from the previous stage may still be preserved
-by RPM; the launcher does not remove user configuration.
+Modified configuration may still be preserved by RPM; the launcher does not
+remove user configuration.
