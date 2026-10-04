@@ -123,24 +123,3 @@ See [GitHub's artifact download instructions](https://docs.github.com/en/actions
 
 Workflow configuration can be checked locally; the actual GitHub runner and
 artifact upload must be checked after pushing the changes and starting a run.
-
-## Verified results (2026-10-02)
-
-- Windows: real RPM build and verification using the official `alt:p11` base
-  image and the official ALT repository. ALT's restriction against building as
-  root was addressed by the separate container build account.
-- Fallback: a fresh derived image was prepared with `http://127.0.0.1:9` first
-  and the official repository second. The first connection was refused, the
-  second repository provided indexes and build tools, and RPM build and
-  verification succeeded.
-- The fallback build ran from `target/container path check/`, exercising an
-  actual Windows project path containing spaces.
-- Tests: 57 total, 56 passed, one existing symbolic-link test skipped on Windows;
-  no failures or errors. Nineteen tests were added for environment selection,
-  repository configuration, recorded image IDs, process failures, argument
-  handling, Docker availability and timeout termination. Checkstyle reported zero violations.
-- A deliberately missing Docker executable produced an immediate Maven error.
-
-Local ALT execution and systemd installation were not rerun on an ALT VM during
-this stage. Container verification checks package metadata and contents; it
-does not start the packaged service.
