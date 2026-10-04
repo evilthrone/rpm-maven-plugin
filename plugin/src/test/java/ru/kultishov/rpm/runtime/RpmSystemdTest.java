@@ -148,6 +148,54 @@ class RpmSystemdTest {
                 () -> RpmSystemd.prepare(configuration, rpm(), temporaryDirectory));
     }
 
+    private RpmSystemd.Service prepareCustomUnit(String directives) throws Exception {
+        Path unit = temporaryDirectory.resolve("oneshot.service");
+        Files.writeString(unit, "[Service]\nUser=demo\nGroup=demo\n" + directives);
+        RpmService configuration = new RpmService();
+        configuration.setUnitFile(unit.toFile());
+        return RpmSystemd.prepare(configuration, rpm(), temporaryDirectory);
+    }
+
+    @Test
+    void acceptsMultipleExecStartCommandsForOneshotRegardlessOfTypePosition() throws Exception {
+        String commands = "ExecStart=/usr/bin/echo first\nExecStart=/usr/bin/echo second\n";
+        for (String directives : List.of("Type=oneshot\n" + commands, commands + "Type=oneshot\n")) {
+            assertEquals("[Service]\nUser=demo\nGroup=demo\n" + directives,
+                    prepareCustomUnit(directives).unit());
+        }
+    }
+
+    @Test
+    void preservesExecStartResetForOneshot() throws Exception {
+        String prefix = "Type=oneshot\nExecStart=/usr/bin/echo old\nExecStart=\n";
+        String replacement = "ExecStart=/usr/bin/echo first\nExecStart=/usr/bin/echo second\n";
+        assertEquals("[Service]\nUser=demo\nGroup=demo\n" + prefix + replacement,
+                prepareCustomUnit(prefix + replacement).unit());
+        for (String directives : List.of("Type=oneshot\n", prefix, prefix + replacement + "ExecStart=   \n")) {
+            assertThrows(MojoExecutionException.class, () -> prepareCustomUnit(directives));
+        }
+    }
+
+    @Test
+    void rejectsMultipleExecStartCommandsForOtherServiceTypes() {
+        String commands = "ExecStart=/usr/bin/echo first\nExecStart=/usr/bin/echo second\n";
+        for (String type : List.of("", "Type=simple\n", "Type=exec\n", "Type=forking\n", "Type=notify\n")) {
+            assertThrows(MojoExecutionException.class, () -> prepareCustomUnit(type + commands));
+        }
+    }
+
+    @Test
+    void usesLastTypeAssignmentAndIgnoresTypeOutsideServiceSection() throws Exception {
+        String commands = "ExecStart=/usr/bin/echo first\nExecStart=/usr/bin/echo second\n";
+        assertDoesNotThrow(() -> prepareCustomUnit("Type=simple\n" + commands + "Type=oneshot\n"));
+        assertThrows(MojoExecutionException.class,
+                () -> prepareCustomUnit("Type=oneshot\n" + commands + "Type=simple\n"));
+        assertThrows(MojoExecutionException.class,
+                () -> prepareCustomUnit("Type=oneshot\n" + commands + "Type=\n"));
+        assertThrows(MojoExecutionException.class,
+                () -> prepareCustomUnit(commands + "[Unit]\nType=oneshot\n"));
+    }
+
     @Test
     void rejectsMissingOrMismatchedAccountAndInvalidCustomUnits() throws Exception {
         RpmService configuration = new RpmService();

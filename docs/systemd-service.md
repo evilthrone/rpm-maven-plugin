@@ -53,10 +53,11 @@ For a supplied unit, add this directive in `[Service]` yourself if needed.
 
 Relative paths resolve against the consuming project. The source must be a
 regular file without symbolic links. CRLF is normalized to LF.
-The file must contain exactly one matching `User=`, `Group=` and nonempty
-effective `ExecStart=` in `[Service]`. Empty `ExecStart=` resets the preceding
-commands; one command must remain after the last reset. `DynamicUser` and line
-continuations are rejected.
+The file must contain exactly one matching `User=` and `Group=` in `[Service]`.
+At least one nonempty effective `ExecStart=` is required; multiple commands
+are allowed only with `Type=oneshot`. The last `Type=` assignment is used.
+Empty `ExecStart=` resets the preceding commands; at least one command must
+remain after the last reset. `DynamicUser` and line continuations are rejected.
 Other directives are retained as supplied. Generated description, arguments,
 environment and restart settings do not modify a supplied unit.
 The author is responsible for its systemd semantics; the plugin's checks are

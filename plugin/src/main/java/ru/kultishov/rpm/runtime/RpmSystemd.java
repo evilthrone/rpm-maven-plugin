@@ -105,6 +105,7 @@ public final class RpmSystemd {
             throw new MojoExecutionException("Custom unit contains unsupported control characters or continuations");
         }
         String section = "";
+        String type = "";
         int users = 0;
         int groups = 0;
         int commands = 0;
@@ -116,6 +117,7 @@ public final class RpmSystemd {
                     && !trimmed.startsWith(";")) {
                 String[] pair = trimmed.split("=", 2);
                 switch (pair[0].trim()) {
+                    case "Type" -> type = pair[1].trim();
                     case "User" -> { users++; if (!pair[1].trim().equals(user)) throw new MojoExecutionException("Unit User must match service user"); }
                     case "Group" -> { groups++; if (!pair[1].trim().equals(group)) throw new MojoExecutionException("Unit Group must match service group"); }
                     case "ExecStart" -> { commands = pair[1].isBlank() ? 0 : commands + 1; }
@@ -124,8 +126,10 @@ public final class RpmSystemd {
                 }
             }
         }
-        if (users != 1 || groups != 1 || commands != 1) {
-            throw new MojoExecutionException("Custom unit requires one User, Group and non-empty ExecStart in [Service]");
+        boolean validCommands = commands > 0 && (type.equals("oneshot") || commands == 1);
+        if (users != 1 || groups != 1 || !validCommands) {
+            throw new MojoExecutionException("Custom unit requires one User, Group and non-empty ExecStart in [Service]; "
+                    + "multiple ExecStart commands are allowed only with Type=oneshot");
         }
     }
 }
