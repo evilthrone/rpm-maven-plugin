@@ -49,7 +49,8 @@ public final class RpmSpec {
                 + "%install\n");
         for (RpmContent.Entry entry : content.entries()) {
             if (entry.directory()) {
-                spec.append("install -dm ").append(entry.mode()).append(" \"%{buildroot}")
+                // Keep staging directories writable; %attr applies the requested permissions to the RPM.
+                spec.append("install -dm 0755 \"%{buildroot}")
                         .append(entry.destination()).append("\"\n");
             } else {
                 spec.append("install -Dpm ").append(entry.mode()).append(" \"%{SOURCE")
