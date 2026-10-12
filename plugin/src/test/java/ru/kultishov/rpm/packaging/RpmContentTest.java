@@ -8,6 +8,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Instant;
 import java.util.List;
 import java.util.Properties;
@@ -36,6 +38,43 @@ class RpmContentTest {
         Path jar = temporaryDirectory.resolve("demo.jar");
         Files.writeString(jar, "JAR payload");
         return RpmContent.prepare(rpmPackage(), jar, temporaryDirectory, List.of(mappings));
+    }
+
+    @Test
+    void makesPrivateSourcesReadableForTheBuilderWithoutChangingOriginalOrPackagedPermissions() throws Exception {
+        assumeTrue(Files.getFileAttributeView(temporaryDirectory, PosixFileAttributeView.class) != null,
+                "POSIX file permissions are unavailable on this filesystem");
+        Path jar = Files.writeString(temporaryDirectory.resolve("demo.jar"), "JAR payload");
+        Path config = Files.writeString(temporaryDirectory.resolve("private.conf"), "private configuration");
+        Path assets = Files.createDirectory(temporaryDirectory.resolve("assets"));
+        Path nested = Files.writeString(assets.resolve("private.txt"), "private asset");
+        Files.setPosixFilePermissions(jar, PosixFilePermissions.fromString("r--------"));
+        Files.setPosixFilePermissions(config, PosixFilePermissions.fromString("rw-------"));
+        Files.setPosixFilePermissions(nested, PosixFilePermissions.fromString("rw-------"));
+        RpmMapping configMapping = mapping("private.conf", "/etc/demo/private.conf");
+        configMapping.setMode("0600");
+        configMapping.setConfig(true);
+        RpmMapping assetsMapping = mapping("assets", "/usr/share/demo/assets");
+        assetsMapping.setFileMode("0600");
+        RpmContent content = RpmContent.prepare(rpmPackage(), jar, temporaryDirectory,
+                List.of(mapping(null, "/etc/demo"), configMapping, assetsMapping));
+        Path sources = Files.createDirectory(temporaryDirectory.resolve("SOURCES"));
+
+        content.stage(sources);
+
+        for (RpmContent.Entry entry : content.entries()) {
+            if (!entry.directory()) {
+                Path staged = sources.resolve(entry.sourceName());
+                assertEquals(PosixFilePermissions.fromString("rw-r--r--"), Files.getPosixFilePermissions(staged));
+                assertEquals(Files.readString(entry.source()), Files.readString(staged));
+            }
+        }
+        assertEquals(PosixFilePermissions.fromString("r--------"), Files.getPosixFilePermissions(jar));
+        assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(config));
+        assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(nested));
+        String spec = RpmSpec.generate(rpmPackage(), "Demo", "Proprietary", "Development/Other", BUILD_TIME, content);
+        assertTrue(spec.contains("%config(noreplace) %attr(0600,root,root) /etc/demo/private.conf\n"));
+        assertTrue(spec.contains("%attr(0600,root,root) /usr/share/demo/assets/private.txt\n"));
     }
 
     @Test

@@ -66,7 +66,10 @@ other content in the RPM plugin's `<configuration>`:
   such as `/etc` or `/usr/share`.
 
 Files are copied into `target/rpm-work/SOURCES`; extra files use numbered source
-names. The validated list is saved in `content.properties`, so later goals
+names. On POSIX filesystems, these temporary copies use `0644` so the container
+builder can read them after copying. Original source permissions are unchanged;
+the packaged permissions are set separately through `%attr`.
+The validated list is saved in `content.properties`, so later goals
 use the prepared configuration. `build` checks staged sources. `verify` checks
 each expected path, file type, mode, owner, group, and configuration flags using
 RPM queries.

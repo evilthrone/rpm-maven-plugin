@@ -12,6 +12,8 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -158,6 +160,12 @@ public final class RpmContent {
                 throw new MojoExecutionException("RPM source is no longer a regular file: " + entry.source());
             }
             Files.copy(entry.source(), target, StandardCopyOption.REPLACE_EXISTING);
+            PosixFileAttributeView permissions = Files.getFileAttributeView(target, PosixFileAttributeView.class,
+                    LinkOption.NOFOLLOW_LINKS);
+            if (permissions != null) {
+                // Staged files must remain readable after docker cp assigns a different owner.
+                permissions.setPermissions(PosixFilePermissions.fromString("rw-r--r--"));
+            }
         }
     }
 
